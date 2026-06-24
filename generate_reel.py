@@ -1,9 +1,11 @@
-import os, requests, subprocess
+import os, re, requests, subprocess
+import imageio_ffmpeg
 from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
 
 load_dotenv()
 
+FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 ELEVENLABS_KEY = os.getenv("ELEVENLABS_API_KEY")
 PEXELS_KEY = os.getenv("PEXELS_API_KEY")
 VOICE_ID = "Z9RJEkFYQw307BCQULDR"
@@ -50,19 +52,30 @@ broll_paths = fetch_broll("couple romantic", count=3)
 print(f"✅ B-roll 下載完成：{len(broll_paths)} 支")
 
 # ── 4. 生成 SRT 字幕 ─────────────────────────
-def build_srt(text, audio_path):
-    """用 ffprobe 取得音頻長度，依行數平均分配時間軸"""
+def get_audio_duration(audio_path):
+    """用 ffmpeg stderr 解析音頻時長"""
     result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=noprint_wrappers=1:nokey=1", audio_path],
+        [FFMPEG, "-i", audio_path],
         capture_output=True, text=True
     )
-    total_sec = float(result.stdout.strip())
+    match = re.search(r"Duration:\s*(\d+):(\d+):([\d.]+)", result.stderr)
+    if not match:
+        return 30.0
+    h, m, s = int(match.group(1)), int(match.group(2)), float(match.group(3))
+    return h * 3600 + m * 60 + s
 
-    # 每行最多 15 個中文字
+def build_srt(text, audio_path):
+    total_sec = get_audio_duration(audio_path)
+
+    # 每行最多 15 個中文字，遇標點斷行
     lines = []
     buf = ""
     for ch in text:
+        if ch == "\n":
+            if buf.strip():
+                lines.append(buf.strip())
+            buf = ""
+            continue
         buf += ch
         if ch in ("。", "！", "？", "，", "、") or len(buf) >= 15:
             lines.append(buf.strip())
@@ -98,7 +111,7 @@ with open("output/broll_list.txt", "w") as f:
         f.write(f"file '{os.path.abspath(p)}'\n")
 
 subprocess.run([
-    "ffmpeg", "-y",
+    FFMPEG, "-y",
     "-f", "concat", "-safe", "0", "-i", "output/broll_list.txt",
     "-i", "output/narration.mp3",
     "-vf", (
