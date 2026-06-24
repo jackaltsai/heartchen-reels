@@ -8,7 +8,7 @@ load_dotenv()
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 ELEVENLABS_KEY = os.getenv("ELEVENLABS_API_KEY")
 PEXELS_KEY = os.getenv("PEXELS_API_KEY")
-VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam
+VOICE_ID = "ErXwobaYiN019PkySvjV"  # Antoni
 
 os.makedirs("output", exist_ok=True)
 
