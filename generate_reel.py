@@ -48,7 +48,7 @@ def fetch_broll(keyword, count=3):
         paths.append(path)
     return paths
 
-broll_paths = fetch_broll("couple romantic", count=3)
+broll_paths = fetch_broll("lonely sad window rain", count=3)
 print(f"✅ B-roll 下載完成：{len(broll_paths)} 支")
 
 # ── 4. 生成 SRT 字幕 ─────────────────────────
